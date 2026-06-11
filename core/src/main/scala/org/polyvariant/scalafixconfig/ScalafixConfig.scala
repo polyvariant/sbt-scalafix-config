@@ -70,16 +70,24 @@ object ScalafixConfig {
       case other => other.asInstanceOf[AnyRef]
     }
 
+  private def renderValue(value: Any): String =
+    ConfigValueFactory.fromAnyRef(toJava(value)).render(renderOptions)
+
   /** Render the config to the textual contents of a `.scalafix.conf` file, including the [[header]]
     * banner.
+    *
+    * `rules` is rendered first, ahead of the per-rule settings. Typesafe Config sorts an object's
+    * keys alphabetically when rendering, so we can't rely on a single object to keep `rules` on
+    * top; instead `rules` and the settings are rendered as separate top-level blocks and
+    * concatenated.
     */
   def render(config: ScalafixConfig): String = {
-    val top: Map[String, Any] = Map("rules" -> config.rules) ++ config.settings
-    val rendered = ConfigValueFactory
-      .fromAnyRef(toJava(top))
-      .render(renderOptions)
+    val rulesBlock = renderValue(Map("rules" -> config.rules))
+    val settingsBlock =
+      if (config.settings.isEmpty) ""
+      else renderValue(config.settings)
 
-    header + "\n" + rendered
+    header + "\n" + rulesBlock + settingsBlock
   }
 
 }

@@ -72,6 +72,10 @@ that into a `.scalafix.conf` next to your build:
 # Do not edit by hand — change your build's scalafixConfigured* keys instead
 # and re-run scalafixConfiguredGenerate.
 
+rules=[
+    DisableSyntax,
+    OrganizeImports
+]
 DisableSyntax {
     noFinalize=true
 }
@@ -83,10 +87,6 @@ OrganizeImports {
     ]
     targetDialect=Scala3
 }
-rules=[
-    DisableSyntax,
-    OrganizeImports
-]
 ```
 
 Then run Scalafix as usual — `sbt-scalafix` picks up the generated file automatically:
@@ -171,6 +171,7 @@ on-disk file differs.
 - sbt 1.x / Scala 2.12 only (follows `sbt-scalafix`).
 - Custom-rule resolution is unchanged — declare custom rules with `sbt-scalafix`'s
   `scalafixDependencies` as usual.
-- Rendered HOCON keys are emitted in sorted order (a property of the underlying config
-  library), not source order. This is harmless — Scalafix parses the file either way — and
-  keeps the output deterministic for the up-to-date check.
+- `rules` is always rendered first; the per-rule settings blocks that follow are emitted in
+  sorted order (a property of the underlying config library), not source order. This is
+  harmless — Scalafix parses the file either way — and keeps the output deterministic for the
+  up-to-date check.

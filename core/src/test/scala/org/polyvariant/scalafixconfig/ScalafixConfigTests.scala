@@ -96,6 +96,15 @@ class ScalafixConfigTests extends munit.FunSuite {
     )
   }
 
+  test("rules are rendered before their settings") {
+    val out = ScalafixConfig.render(sample)
+    val body = out.stripPrefix(ScalafixConfig.header)
+    assert(
+      body.indexOf("rules") < body.indexOf("OrganizeImports"),
+      s"rules should come before settings in:\n$out",
+    )
+  }
+
   test("regex string with backslashes round-trips exactly") {
     val cfg = ScalafixConfig(
       rules = Seq("OrganizeImports"),

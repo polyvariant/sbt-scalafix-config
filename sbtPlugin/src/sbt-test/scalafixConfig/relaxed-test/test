@@ -1,0 +1,24 @@
+# generate both Compile and Test .scalafix.conf files
+> scalafixConfiguredGenerateAll
+
+# files exist with the expected names
+> checkFilesExist
+
+# banner header present; Compile has OrganizeImports, Test is relaxed
+> checkContents
+
+# sbt-scalafix's scalafixConfig is wired per configuration
+> checkScalafixWired
+
+# freshly generated files pass the up-to-date check
+> scalafixConfiguredCheckAll
+
+# tamper with the generated Compile config...
+> mutateMainConfig
+
+# ...and the check must now fail
+-> scalafixConfiguredCheckAll
+
+# regenerating brings it back up to date
+> scalafixConfiguredGenerateAll
+> scalafixConfiguredCheckAll

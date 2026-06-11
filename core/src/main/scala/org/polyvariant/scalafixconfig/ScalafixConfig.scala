@@ -84,8 +84,10 @@ object ScalafixConfig {
   def render(config: ScalafixConfig): String = {
     val rulesBlock = renderValue(Map("rules" -> config.rules))
     val settingsBlock =
-      if (config.settings.isEmpty) ""
-      else renderValue(config.settings)
+      if (config.settings.isEmpty)
+        ""
+      else
+        renderValue(config.settings)
 
     header + "\n" + rulesBlock + settingsBlock
   }

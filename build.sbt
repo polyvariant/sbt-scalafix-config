@@ -13,22 +13,24 @@ ThisBuild / githubWorkflowPublishTargetBranches := Seq(
 ThisBuild / githubWorkflowJavaVersions := Seq(JavaSpec.temurin("17"))
 
 val scala212 = "2.12.21"
-val scala3 = "3.8.4"
 
+// The whole build targets sbt 1.x / Scala 2.12 only. This is an sbt plugin and sbt-scalafix
+// (which it builds on) ships no Scala 3 / sbt 2.0 artifact, so the plugin can only be 2.12.
+// `core` stays on the same single axis too: if it were also cross-built to Scala 3, the
+// 2.12-only plugin's `dependsOn(core)` would resolve `core` as a *published* artifact (the two
+// live on different cross axes) and fail on a clean checkout. Nothing consumes a Scala 3
+// `core` anyway — only the plugin uses it.
 ThisBuild / scalaVersion := scala212
-ThisBuild / crossScalaVersions := Seq(scala212, scala3)
+ThisBuild / crossScalaVersions := Seq(scala212)
 ThisBuild / tlJdkRelease := None
 ThisBuild / tlFatalWarnings := false
 
 ThisBuild / mergifyStewardConfig ~= (_.map(_.withMergeMinors(true)))
 
-// Run the sbt plugin's scripted tests in CI, after the normal build. The plugin builds only
-// on sbt 1.x / Scala 2.12 (sbt-scalafix has no sbt 2.0 artifact), so this runs once, on the
-// 2.12 matrix row, without an `++` cross prefix.
+// Run the sbt plugin's scripted tests in CI, after the normal build.
 ThisBuild / githubWorkflowBuildPostamble += WorkflowStep.Sbt(
   List("sbtPlugin/scripted"),
   name = Some("Scripted tests"),
-  cond = Some("matrix.scala == '2.12'"),
 )
 
 lazy val core = project
@@ -41,13 +43,10 @@ lazy val core = project
     mimaPreviousArtifacts := Set.empty,
   )
 
-// The plugin builds only on sbt 1.x / Scala 2.12: sbt-scalafix does not publish an sbt 2.0
-// artifact. `core` is consumed on its 2.12 build.
 lazy val sbtPlugin = project
   .dependsOn(core)
   .settings(
     name := "sbt-scalafix-config",
-    crossScalaVersions := Seq(scala212),
     libraryDependencies ++= Seq(
       "org.scalameta" %% "munit" % "1.3.2" % Test
     ),

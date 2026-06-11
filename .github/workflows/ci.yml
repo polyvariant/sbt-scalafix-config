@@ -28,7 +28,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-22.04]
-        scala: [2.12, 3]
+        scala: [2.12]
         java: [temurin@17]
     runs-on: ${{ matrix.os }}
     timeout-minutes: 60
@@ -73,7 +73,6 @@ jobs:
         run: sbt '++ ${{ matrix.scala }}' doc
 
       - name: Scripted tests
-        if: matrix.scala == '2.12'
         run: sbt '++ ${{ matrix.scala }}' sbtPlugin/scripted
 
       - name: Make target directories
@@ -128,16 +127,6 @@ jobs:
           name: target-${{ matrix.os }}-${{ matrix.java }}-2.12
 
       - name: Inflate target directories (2.12)
-        run: |
-          tar xf targets.tar
-          rm targets.tar
-
-      - name: Download target directories (3)
-        uses: actions/download-artifact@v6
-        with:
-          name: target-${{ matrix.os }}-${{ matrix.java }}-3
-
-      - name: Inflate target directories (3)
         run: |
           tar xf targets.tar
           rm targets.tar
@@ -199,7 +188,7 @@ jobs:
       - name: Submit Dependencies
         uses: scalacenter/sbt-dependency-submission@v2
         with:
-          modules-ignore: root_2.12 root_3
+          modules-ignore: root_2.12
           configs-ignore: test scala-tool scala-doc-tool test-internal
 
   validate-steward:

@@ -10,15 +10,25 @@
 # sbt-scalafix's scalafixConfig is wired per configuration
 > checkScalafixWired
 
+# a project with no rules leaves scalafixConfig untouched
+> checkNoRulesNotWired
+
 # freshly generated files pass the up-to-date check
 > scalafixConfiguredCheckAll
 
 # tamper with the generated Compile config...
 > mutateMainConfig
 
-# ...and the check must now fail
--> scalafixConfiguredCheckAll
+# ...and the per-config Compile check must fail
+-> Compile/scalafixConfiguredCheck
 
-# regenerating brings it back up to date
+# regenerate, then tamper with the Test config instead...
+> scalafixConfiguredGenerateAll
+> mutateTestConfig
+
+# ...and the per-config Test check must fail independently
+-> Test/scalafixConfiguredCheck
+
+# regenerating brings everything back up to date
 > scalafixConfiguredGenerateAll
 > scalafixConfiguredCheckAll

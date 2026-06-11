@@ -15,10 +15,21 @@ lazy val root = project
         "groups" -> Seq("re:javax?\\.", "scala", "*"),
       ),
     ),
-    // Test: a deliberately more relaxed rule set.
-    Test / scalafixConfiguredRules := Seq("DisableSyntax"),
-    Test / scalafixConfiguredSettings := Map.empty,
+    // Test: derived from Compile — drop OrganizeImports, but keep the rest (including
+    // DisableSyntax's settings block). This is the idiomatic "Test = Compile minus a rule"
+    // pattern, since the keys are plain settings.
+    Test / scalafixConfiguredRules :=
+      (Compile / scalafixConfiguredRules).value.filterNot(_ == "OrganizeImports"),
+    Test / scalafixConfiguredSettings :=
+      (Compile / scalafixConfiguredSettings).value - "OrganizeImports",
   )
+
+// A project that enables the plugin but declares NO rules. Its scalafixConfig must be left
+// untouched (the plugin only wires it when a configuration declares rules).
+lazy val noRules = project
+  .in(file("no-rules"))
+  .enablePlugins(ScalafixConfigPlugin)
+  .settings(scalaVersion := "2.12.21")
 
 // --- assertions, run from the `test` script ---
 
@@ -48,7 +59,11 @@ checkContents := {
   assert(mainTxt.contains("OrganizeImports"), s"Compile config missing OrganizeImports:\n$mainTxt")
   assert(mainTxt.contains("targetDialect"), s"Compile config missing OrganizeImports block:\n$mainTxt")
   assert(!testTxt.contains("OrganizeImports"), s"Test config should be relaxed (no OrganizeImports):\n$testTxt")
-  assert(testTxt.contains("DisableSyntax"), s"Test config missing DisableSyntax:\n$testTxt")
+
+  // Test inherited the rest from Compile: DisableSyntax and its noFinalize settings block
+  // survive even though OrganizeImports was dropped.
+  assert(testTxt.contains("DisableSyntax"), s"Test config missing inherited DisableSyntax:\n$testTxt")
+  assert(testTxt.contains("noFinalize"), s"Test config missing inherited DisableSyntax block:\n$testTxt")
 }
 
 val checkScalafixWired = taskKey[Unit]("sbt-scalafix's scalafixConfig points at our generated files per config")
@@ -65,8 +80,23 @@ checkScalafixWired := {
   )
 }
 
+val checkNoRulesNotWired =
+  taskKey[Unit]("A config with no rules leaves scalafixConfig untouched (default None)")
+checkNoRulesNotWired := {
+  val main = (noRules / Compile / scalafixConfig).value
+  val test = (noRules / Test / scalafixConfig).value
+  assert(main.isEmpty, s"noRules Compile / scalafixConfig should be None, was: $main")
+  assert(test.isEmpty, s"noRules Test / scalafixConfig should be None, was: $test")
+}
+
 val mutateMainConfig = taskKey[Unit]("Corrupt the generated Compile config to force a staleness failure")
 mutateMainConfig := {
   val f = (Compile / scalafixConfiguredFile).value
+  IO.write(f, IO.read(f) + "\n# tampered\n")
+}
+
+val mutateTestConfig = taskKey[Unit]("Corrupt the generated Test config to force a staleness failure")
+mutateTestConfig := {
+  val f = (Test / scalafixConfiguredFile).value
   IO.write(f, IO.read(f) + "\n# tampered\n")
 }
